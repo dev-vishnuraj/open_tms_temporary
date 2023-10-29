@@ -1,0 +1,298 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("BB_OPEN_TMS_DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model tenant {
+  id           String    @id @default(uuid())
+  name         String    @unique
+  display_name String    @unique
+  created_at   DateTime? @default(now())
+  updated_at   DateTime? @updatedAt
+
+  organisation_tenant_fk organisation[] @relation("organisation_tenant_id")
+}
+
+model organisation {
+  id                String    @id @default(uuid())
+  name              String
+  display_name      String
+  license_no        String?
+  logo_url          String?
+  years_in_business String?
+  created_by        String?
+  updated_by        String?
+  created_at        DateTime? @default(now())
+  updated_at        DateTime? @updatedAt
+  tenant_id         String?
+
+  org_member_fk org_member[] @relation("org_member_organisation_id")
+
+  organisation_tenant_id  tenant?   @relation("organisation_tenant_id", fields: [tenant_id], references: [id])
+  organisation_created_by user?     @relation("organisation_created_by", fields: [created_by], references: [id])
+  organisation_updated_by user?     @relation("organisation_updated_by", fields: [updated_by], references: [id])
+  organisation_ticket_fk  ticket[]  @relation("ticket_organisation_id")
+  organisation_process_fk process[] @relation("process__organisation_id")
+}
+
+model user {
+  id                String  @id @default(uuid())
+  first_name        String
+  middle_name       String?
+  last_name         String?
+  country_code      String?
+  phn_no            String? @unique
+  display_name      String
+  display_picture   String?
+  status            Int     @default(4)
+
+  created_at DateTime? @default(now())
+  updated_at DateTime? @updatedAt
+
+  organisation_created_by_fk                organisation[]                @relation("organisation_created_by")
+  organisation_updated_by_fk                organisation[]                @relation("organisation_updated_by")
+  org_member_created_by_fk                  org_member[]                  @relation("org_member_created_by")
+  org_member_updated_by_fk                  org_member[]                  @relation("org_member_updated_by")
+  process_created_by_fk                     process[]                     @relation("process_created_by")
+  process_updated_by_fk                     process[]                     @relation("process_updated_by")
+  stage_created_by_fk                       stage[]                       @relation("stage_created_by")
+  stage_updated_by_fk                       stage[]                       @relation("stage_updated_by")
+  process_path_created_by_fk                process_path[]                @relation("process_path_created_by")
+  process_path_updated_by_fk                process_path[]                @relation("process_path_updated_by")
+  ticket_revision_attachments_created_by_fk ticket_revision_attachments[] @relation("ticket_revision_attachments_created_by")
+  ticket_revision_attachments_updated_by_fk ticket_revision_attachments[] @relation("ticket_revision_attachments_updated_by")
+  ticket_created_by_fk                      ticket[]                      @relation("ticket_created_by")
+  ticket_updated_by_fk                      ticket[]                      @relation("ticket_updated_by")
+  ticket_revision_created_by_fk             ticket_revision[]             @relation("ticket_revision_created_by")
+  ticket_revision_updated_by_fk             ticket_revision[]             @relation("ticket_revision_updated_by")
+  ticket_activity_created_by_fk             ticket_activity[]             @relation("ticket_activity_created_by")
+  ticket_activity_updated_by_fk             ticket_activity[]             @relation("ticket_activity_updated_by")
+
+  org_member_roles org_member_roles[] @relation("org_member_roles_user")
+  user_accounts user_account[] @relation("user_account_user_id")
+}
+
+model user_account {
+  id                String    @id @default(uuid())
+  email             String
+  provider          String // 0 password 1 google
+  password_hash     String?
+  password_salt     String?
+  created_at        DateTime? @default(now())
+  updated_at        DateTime? @updatedAt
+  user_id           String
+  is_email_verified Boolean   @default(false)
+
+  user user @relation("user_account_user_id", fields: [user_id], references: [id])
+
+  @@unique([email, provider], name: "emailIdentifier")
+}
+
+//table used for entities which can be assigned a ticket.This is a link table
+model org_member {
+  id              String    @id @default(uuid())
+  name            String?
+  display_name    String?
+  type            Int // to determine the type of entity.1 for user and 2 for department
+  created_by      String?
+  updated_by      String?
+  created_at      DateTime? @default(now())
+  updated_at      DateTime? @updatedAt
+  organisation_id String
+
+  org_member_organisation_id organisation? @relation("org_member_organisation_id", fields: [organisation_id], references: [id])
+
+  org_member_created_by user? @relation("org_member_created_by", fields: [created_by], references: [id])
+
+  org_member_updated_by user? @relation("org_member_updated_by", fields: [updated_by], references: [id])
+
+  org_member_roles_fk            org_member_roles[] @relation("org_member_roles_id")
+  org_member_department_fk       department[]       @relation("department_id")
+  org_member_department_users_fk department_users[] @relation("department_users_org_member_id")
+  org_member_ticket_activity_fk  ticket_activity[]  @relation("ticket_activity_assignee_id")
+}
+
+model org_member_roles {
+  id      String  @id
+  user_id String?
+  role_id String?
+
+  created_at DateTime? @default(now())
+  updated_at DateTime? @updatedAt
+
+  org_member_roles_id_fk   org_member? @relation("org_member_roles_id", fields: [id], references: [id])
+  org_member_roles_user_fk user?       @relation("org_member_roles_user", fields: [user_id], references: [id])
+  org_member_roles_role_fk roles?      @relation("org_member_roles_roles", fields: [role_id], references: [id])
+}
+
+model roles {
+  id           String    @id @default(uuid())
+  name         String
+  display_name String
+  created_at   DateTime? @default(now())
+  updated_at   DateTime? @updatedAt
+
+  org_member_roles_fk org_member_roles[] @relation("org_member_roles_roles")
+  department_users_fk department_users[] @relation("department_users_role_id")
+
+  @@unique([display_name], name: "display_name_unique_index")
+  @@unique([name], name: "name_unique_index")
+}
+
+model department {
+  id           String    @id
+  name         String
+  display_name String
+  created_at   DateTime? @default(now())
+  updated_at   DateTime? @updatedAt
+
+  department_id_fk    org_member?        @relation("department_id", fields: [id], references: [id])
+  department_users_fk department_users[] @relation("department_users_department_id")
+}
+
+model department_users {
+  id            String  @id @default(uuid())
+  org_member_id String
+  role_id       String?
+  department_id String?
+
+  created_at DateTime? @default(now())
+  updated_at DateTime? @updatedAt
+
+  department_users_org_member_id_fk org_member @relation("department_users_org_member_id", fields: [org_member_id], references: [id])
+  department_users_role_id_fk       roles?     @relation("department_users_role_id", fields: [role_id], references: [id])
+
+  department_users_department_id_fk department? @relation("department_users_department_id", fields: [department_id], references: [id])
+}
+
+model process {
+  id              String    @id
+  name            String    @unique //for internal use
+  display_name    String    @unique
+  created_by      String?
+  updated_by      String?
+  organisation_id String?
+  created_at      DateTime? @default(now())
+  updated_at      DateTime? @updatedAt
+
+  process__organisation_id organisation? @relation("process__organisation_id", fields: [organisation_id], references: [id])
+  process_created_by       user?         @relation("process_created_by", fields: [created_by], references: [id])
+
+  process_updated_by user? @relation("process_updated_by", fields: [updated_by], references: [id])
+
+  stage_process_id_fk                 stage[]           @relation("stage_process_id")
+  stage_ticket_revision_process_id_fk ticket_revision[] @relation("ticket_revision_process_id")
+  process_path_process_id_fk          process_path[]    @relation("process_path_process_id")
+}
+
+model stage {
+  id           String    @id
+  name         String    @unique //for internal use
+  display_name String    @unique
+  type         Int?
+  created_by   String?
+  updated_by   String?
+  created_at   DateTime? @default(now())
+  updated_at   DateTime? @updatedAt
+  is_start     Boolean? //toggle to identify whether the stage is the first stage
+  is_end       Boolean? //toggle to identify whether the stage is any of the last stages
+  process_id   String?
+
+  stage_created_by                 user?             @relation("stage_created_by", fields: [created_by], references: [id])
+  stage_updated_by                 user?             @relation("stage_updated_by", fields: [updated_by], references: [id])
+  stage_process_id                 process?          @relation("stage_process_id", fields: [process_id], references: [id])
+  process_path_from_stage_fk       process_path[]    @relation("process_path_from_stage")
+  process_path_to_stage_fk         process_path[]    @relation("process_path_to_stage")
+  ticket_activity_current_stage_fk ticket_activity[] @relation("ticket_activity_current_stage")
+  @@unique([name,process_id], name: "stage_name_process_id")
+
+}
+
+model process_path {
+  id           String    @id @default(uuid())
+  name         String    @unique //fo internal use
+  display_name String    @unique
+  created_by   String?
+  updated_by   String?
+  created_at   DateTime? @default(now())
+  updated_at   DateTime? @updatedAt
+  from_stage   String?
+  to_stage     String?
+  process_id   String
+
+  process_path_created_by user?   @relation("process_path_created_by", fields: [created_by], references: [id])
+  process_path_updated_by user?   @relation("process_path_updated_by", fields: [updated_by], references: [id])
+  process_path_from_stage stage?  @relation("process_path_from_stage", fields: [from_stage], references: [id])
+  process_path_to_stage   stage?  @relation("process_path_to_stage", fields: [to_stage], references: [id])
+  process_path_process_id process @relation("process_path_process_id", fields: [process_id], references: [id])
+}
+
+model ticket_revision_attachments {
+  id                 String    @id @default(uuid())
+  ticket_revision_id String
+  name               String?
+  url                String
+  key                String?
+  created_by         String?
+  updated_by         String?
+  created_at         DateTime? @default(now())
+  updated_at         DateTime? @updatedAt
+
+  ticket_revision_attachments_created_by user? @relation("ticket_revision_attachments_created_by", fields: [created_by], references: [id])
+  ticket_revision_attachments_updated_by user? @relation("ticket_revision_attachments_updated_by", fields: [updated_by], references: [id])
+}
+
+model ticket {
+  id              String    @id @default(uuid())
+  status          Int       @default(0) // 0 open 1 closed
+  created_by      String?
+  updated_by      String?
+  created_at      DateTime? @default(now())
+  updated_at      DateTime? @updatedAt
+  organisation_id String
+
+  ticket_organisation_id       organisation?     @relation("ticket_organisation_id", fields: [organisation_id], references: [id])
+  ticket_created_by            user?             @relation("ticket_created_by", fields: [created_by], references: [id])
+  ticket_updated_by            user?             @relation("ticket_updated_by", fields: [updated_by], references: [id])
+  ticket_revision_ticket_id_fk ticket_revision[] @relation("ticket_revision_ticket_id")
+}
+
+model ticket_revision {
+  id          String    @id @default(uuid())
+  title       String?
+  description String?   @db.Text
+  created_by  String?
+  updated_by  String?
+  created_at  DateTime? @default(now())
+  updated_at  DateTime? @updatedAt
+  process_id  String?
+  ticket_id   String
+
+  ticket_revision_created_by            user?             @relation("ticket_revision_created_by", fields: [created_by], references: [id])
+  ticket_revision_updated_by            user?             @relation("ticket_revision_updated_by", fields: [updated_by], references: [id])
+  ticket_revision_process_id            process?          @relation("ticket_revision_process_id", fields: [process_id], references: [id])
+  ticket_revision_ticket_id             ticket?           @relation("ticket_revision_ticket_id", fields: [ticket_id], references: [id], onDelete: Cascade)
+  ticket_activity_ticket_revision_id_fk ticket_activity[] @relation("ticket_activity_ticket_revision_id")
+}
+
+model ticket_activity {
+  id                 String    @id @default(uuid())
+  created_by         String?
+  updated_by         String?
+  created_at         DateTime? @default(now())
+  updated_at         DateTime? @updatedAt
+  assignee_id        String?
+  current_stage      String // draft --> 5 th pending
+  remark             String?   @db.Text
+  ticket_revision_id String
+
+  ticket_activity_created_by         user?           @relation("ticket_activity_created_by", fields: [created_by], references: [id])
+  ticket_activity_updated_by         user?           @relation("ticket_activity_updated_by", fields: [updated_by], references: [id])
+  ticket_activity_assignee_id        org_member?     @relation("ticket_activity_assignee_id", fields: [assignee_id], references: [id])
+  ticket_activity_current_stage      stage           @relation("ticket_activity_current_stage", fields: [current_stage], references: [id])
+  ticket_activity_ticket_revision_id ticket_revision @relation("ticket_activity_ticket_revision_id", fields: [ticket_revision_id], references: [id])
+}

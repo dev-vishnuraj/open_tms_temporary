@@ -1,0 +1,55 @@
+{
+  "blockId": "qL9xFyF94i48ou6GHbJLl",
+  "name": "open_tms_backend",
+  "type": "package",
+  "source": {
+    "https": "https://github.com/appblocks-hub/open_tms.git",
+    "ssh": "git@github.com:appblocks-hub/open_tms.git",
+    "branch": "block_open_tms_backend"
+  },
+  "parentBlockIDs": ["cjFjUTS-eRkzpj10RRol-"],
+  "repoType": "mono",
+  "supportedAppblockVersions": ["1.0.0"],
+  "isPublic": true,
+  "middlewares": [
+    {
+      "executeOnBlocks": [],
+      "middlewaresList": ["open_tms_auth_middleware"]
+    }
+  ],
+  "dependencies": {
+    "open_tms_create_ticket": {
+      "directory": "open_tms_create_ticket"
+    },
+    "open_tms_update_ticket": {
+      "directory": "open_tms_update_ticket"
+    },
+    "open_tms_list_tickets": {
+      "directory": "open_tms_list_tickets"
+    },
+    "open_tms_reassign_ticket": {
+      "directory": "open_tms_reassign_ticket"
+    },
+    "open_tms_close_ticket": {
+      "directory": "open_tms_close_ticket"
+    },
+    "open_tms_create_ticket_type": {
+      "directory": "open_tms_create_ticket_type"
+    },
+    "open_tms_update_ticket_type": {
+      "directory": "open_tms_update_ticket_type"
+    },
+    "open_tms_delete_ticket_type": {
+      "directory": "open_tms_delete_ticket_type"
+    },
+    "open_tms_create_organisation": {
+      "directory": "open_tms_create_organisation"
+    },
+    "open_tms_create_department": {
+      "directory": "open_tms_create_department"
+    },
+    "open_tms_get_ticket_activity_logs": {
+      "directory": "open_tms_get_ticket_activity_logs"
+    }
+  }
+}
